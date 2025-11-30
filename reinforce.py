@@ -45,12 +45,12 @@ class REINFORCE:
         returns = torch.FloatTensor(returns)
         log_probs = torch.stack(log_probs)
         
+        # use an advantage over baseline (mean weighted) reward to boost signal
         if self.baseline is None:
             self.baseline = returns.mean()
         else:
             self.baseline = 0.95 * self.baseline + 0.05 * returns.mean()
-        
-        # use an advantage over baseline (mean weighted) reward to boost signal
+
         advantages = returns - self.baseline
         loss = -(log_probs * advantages).mean()  # mean instead of sum. with mean, each episode contributes roughly the same scale of gradient regardless of length.
 
@@ -86,17 +86,9 @@ def train(num_episodes=2000):
 
     episode_rewards = []
 
-    best_reward = -float('inf')
-    worst_reward = float('inf')
     for i in range(num_episodes):
         return_total, loss = agent.rollout(env)
         episode_rewards.append(return_total)
-        if return_total > best_reward:
-            best_reward = return_total
-            print(f"NEW BEST at episode {i+1}: {return_total:.2f}")
-    
-        if return_total < worst_reward:
-            worst_reward = return_total
 
         if (i+1) % 100 == 0: # print every 100 episodes
             avg_reward = np.mean(episode_rewards[-100:])
